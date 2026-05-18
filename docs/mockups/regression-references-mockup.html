@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalGates 회귀 모델 — 대기업/플랫폼 사례 비교 목업</title>
+    <style>
+        :root {
+            --bg: #f6f2e8;
+            --panel: rgba(255, 252, 246, 0.86);
+            --panel-strong: #fffdf8;
+            --ink: #1f1b16;
+            --muted: #6c655d;
+            --line: rgba(81, 62, 35, 0.14);
+            --accent: #0f766e;
+            --accent-soft: rgba(15, 118, 110, 0.12);
+            --accent-strong: #115e59;
+            --sun: #d97706;
+            --sun-soft: rgba(217, 119, 6, 0.14);
+            --rose: #9f1239;
+            --rose-soft: rgba(159, 18, 57, 0.1);
+            --indigo: #4338ca;
+            --indigo-soft: rgba(67, 56, 202, 0.1);
+            --shadow: 0 26px 80px rgba(63, 43, 18, 0.13);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at top left, rgba(255, 214, 153, 0.42), transparent 28%),
+                radial-gradient(circle at right 20%, rgba(15, 118, 110, 0.12), transparent 24%),
+                linear-gradient(180deg, #f7f2e9 0%, #f3ede1 100%);
+            color: var(--ink);
+            font-family: "SUIT Variable", "Pretendard Variable", "Segoe UI", sans-serif;
+        }
+
+        body { padding: 28px; }
+
+        .shell {
+            max-width: 1480px;
+            margin: 0 auto;
+            display: grid;
+            gap: 22px;
+        }
+
+        .card {
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -40px -50px auto;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(15, 118, 110, 0.24), transparent 70%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.62);
+            color: var(--accent-strong);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 18px 0 14px;
+            font-size: clamp(32px, 4.5vw, 52px);
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            max-width: 760px;
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--line);
+            font-size: 13px;
+            color: var(--ink);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .pill-dot.sun { background: var(--sun); }
+        .pill-dot.rose { background: var(--rose); }
+        .pill-dot.indigo { background: var(--indigo); }
+
+        .section {
+            padding: 30px 32px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title h2 {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: -0.02em;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .badge.recommend {
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+        }
+
+        .badge.warm {
+            background: var(--sun-soft);
+            color: #92400e;
+        }
+
+        .badge.cool {
+            background: var(--indigo-soft);
+            color: var(--indigo);
+        }
+
+        .badge.rose {
+            background: var(--rose-soft);
+            color: var(--rose);
+        }
+
+        .section-desc {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+            max-width: 460px;
+            text-align: right;
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .case {
+            padding: 22px;
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .case:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 38px rgba(63, 43, 18, 0.1);
+        }
+
+        .case-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .case-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 15px;
+            color: white;
+            letter-spacing: -0.02em;
+        }
+
+        .case-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .case-region {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 2px 0 0;
+        }
+
+        .case-feature {
+            font-size: 14px;
+            color: var(--ink);
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        .case-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--accent-strong);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tag.algo {
+            background: rgba(67, 56, 202, 0.08);
+            color: var(--indigo);
+        }
+
+        .case-mapping {
+            margin-top: auto;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 244, 220, 0.6);
+            border: 1px dashed rgba(217, 119, 6, 0.3);
+            font-size: 12px;
+            color: #7c2d12;
+            line-height: 1.5;
+        }
+
+        .case-mapping strong {
+            color: #92400e;
+        }
+
+        /* 회사별 로고 색상 */
+        .lg-karrot { background: linear-gradient(135deg, #ff6f0f, #ff8c42); }
+        .lg-bunjang { background: linear-gradient(135deg, #ff6b00, #fc4c02); }
+        .lg-airbnb { background: linear-gradient(135deg, #ff385c, #d70466); }
+        .lg-zillow { background: linear-gradient(135deg, #006aff, #0052cc); }
+        .lg-ebay { background: linear-gradient(135deg, #e53238, #0064d2); }
+        .lg-amazon { background: linear-gradient(135deg, #ff9900, #232f3e); }
+        .lg-coupang { background: linear-gradient(135deg, #fc3e2c, #b91c1c); }
+        .lg-doordash { background: linear-gradient(135deg, #ff3008, #e02000); }
+        .lg-uber { background: linear-gradient(135deg, #000000, #333333); }
+        .lg-jikbang { background: linear-gradient(135deg, #ff8a3d, #f97316); }
+        .lg-youtube { background: linear-gradient(135deg, #ff0000, #cc0000); }
+        .lg-tiktok { background: linear-gradient(135deg, #000000, #ff0050); }
+        .lg-instagram { background: linear-gradient(135deg, #f09433, #dc2743, #bc1888); }
+        .lg-pinterest { background: linear-gradient(135deg, #e60023, #ad081b); }
+        .lg-reddit { background: linear-gradient(135deg, #ff4500, #e03d00); }
+        .lg-netflix { background: linear-gradient(135deg, #e50914, #b00710); }
+        .lg-spotify { background: linear-gradient(135deg, #1db954, #169c46); }
+        .lg-stitchfix { background: linear-gradient(135deg, #1f2937, #374151); }
+        .lg-booking { background: linear-gradient(135deg, #003580, #0050b3); }
+        .lg-yanolja { background: linear-gradient(135deg, #ff3478, #ff5f8d); }
+        .lg-kurly { background: linear-gradient(135deg, #5f0080, #7e17a3); }
+        .lg-wayfair { background: linear-gradient(135deg, #7b189f, #5b127c); }
+
+        .recommend-box {
+            padding: 32px;
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(217, 119, 6, 0.08));
+            border: 1px solid var(--accent-soft);
+        }
+
+        .recommend-box h2 {
+            margin: 0 0 16px;
+            font-size: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .recommend-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1fr 1fr;
+            margin-top: 18px;
+        }
+
+        @media (max-width: 720px) {
+            .recommend-grid { grid-template-columns: 1fr; }
+        }
+
+        .rec-card {
+            padding: 20px;
+            background: var(--panel-strong);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--line);
+        }
+
+        .rec-card h3 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .rec-card .rank {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--accent-strong);
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .rec-card p {
+            margin: 8px 0 0;
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .footer-note {
+            padding: 22px 32px;
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+
+        <!-- Hero -->
+        <section class="card hero">
+            <span class="eyebrow">⛳ Regression Reference</span>
+            <h1>GlobalGates 회귀 모델 — 대기업·플랫폼은<br>이걸 어떻게 풀고 있나</h1>
+            <p class="lead">
+                분류 모델(카테고리 추천)에 이어 다음 작업으로 만들 회귀 모델의 task 후보를 골라보기 위한 사례집이다.
+                국내·해외 22개 사례를 4개 task 카테고리로 묶어서, 어떤 알고리즘으로 어떤 문제를 풀고 있는지 한눈에 비교한다.
+                각 카드의 노란 박스는 globalgates에 가져왔을 때의 적용 포인트다.
+            </p>
+            <div class="pill-row">
+                <span class="pill"><span class="pill-dot"></span>가격 예측 — 7개 사례</span>
+                <span class="pill"><span class="pill-dot sun"></span>배송·거래 시간 — 5개 사례</span>
+                <span class="pill"><span class="pill-dot indigo"></span>게시글 인기도 — 6개 사례</span>
+                <span class="pill"><span class="pill-dot rose"></span>회원 활동성 / CLV — 4개 사례</span>
+            </div>
+        </section>
+
+        <!-- Section 1: 가격 예측 -->
+        <section class="card section">
+            <div class="section-head">
+                <div class="section-title">
+                    <span class="badge recommend">1순위 추천</span>
+                    <h2>가격 예측 (Price Prediction)</h2>
+                </div>
+                <p class="section-desc">상품 등록 시 카테고리·제목·설명을 기반으로 적정가를 추천한다. 데이터가 가장 풍부하고 분류 모델과 페어로 갈 수 있다.</p>
+            </div>
+
+            <div class="grid">
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-karrot">당근</div>
+                        <div>
+                            <p class="case-name">당근마켓 — 시세 조회</p>
+                            <p class="case-region">🇰🇷 Korea · C2C 중고거래</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">상품 등록 화면에서 같은 카테고리 매물의 가격 분포를 보여주고, 본인 매물의 적정가 구간을 추천한다.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">카테고리별 회귀</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 게시글 등록 모달에 "비슷한 상품의 평균 가격대" 박스를 띄우는 가장 직접적 레퍼런스.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-bunjang">번개</div>
+                        <div>
+                            <p class="case-name">번개장터 — 적정가 가이드</p>
+                            <p class="case-region">🇰🇷 Korea · C2C 중고거래</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">상품 등록 시 "이 가격은 평균보다 OO원 비싸요/싸요" 형태의 가이드 텍스트를 실시간으로 표시한다.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">텍스트 + 카테고리</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 가격 입력 후 즉시 텍스트 피드백을 주는 UX 레퍼런스.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-airbnb">Air</div>
+                        <div>
+                            <p class="case-name">Airbnb — Smart Pricing</p>
+                            <p class="case-region">🌐 Global · 숙박 마켓플레이스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">호스트에게 일자별 추천 숙박료 제시. 위치, 계절성, 경쟁 매물, 검색 수요 등 250+ feature 사용.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM + Neural Net</span>
+                        <span class="tag">동적 가격</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 단일 가격이 아니라 "추천 가격 범위"를 보여주는 패턴 차용 가능. KDD 2018 paper 공개.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-zillow">Z</div>
+                        <div>
+                            <p class="case-name">Zillow — Zestimate</p>
+                            <p class="case-region">🇺🇸 USA · 부동산 플랫폼</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">미국 1억 가구의 집값을 매일 갱신해서 예측. 학습 데이터만 수억 건, 평균 오차 1.9%대 달성.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">XGBoost → DNN</span>
+                        <span class="tag">대용량 회귀</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> XGBoost가 회귀의 표준이 된 대표 사례. 우리도 LinearReg → XGBoost 흐름 정당화.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-ebay">eBay</div>
+                        <div>
+                            <p class="case-name">eBay — Price Recommendation</p>
+                            <p class="case-region">🌐 Global · 중고 마켓플레이스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">판매자가 상품 등록 시 텍스트 + 이미지 + 카테고리 결합한 멀티모달 회귀로 시작가 추천.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">멀티모달 DNN</span>
+                        <span class="tag">텍스트+이미지</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 1차 베이스라인은 텍스트만으로, 향후 상품 이미지 추가 시 멀티모달 확장 명분.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-booking">Bk</div>
+                        <div>
+                            <p class="case-name">Booking.com — 호텔 가격 예측</p>
+                            <p class="case-region">🌐 Global · 숙박 OTA</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">검색 일자/지역/체크인 일정에 따라 실시간 호텔 가격 변동 예측. A/B 테스트로 끊임없이 모델 검증.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">LightGBM</span>
+                        <span class="tag">실시간 예측</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> LightGBM의 빠른 추론 속도가 비동기 추천 API에 적합한 이유 레퍼런스.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-kurly">컬리</div>
+                        <div>
+                            <p class="case-name">마켓컬리 — 신선식품 가격 트렌드</p>
+                            <p class="case-region">🇰🇷 Korea · 신선식품 e커머스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">신선식품의 산지/계절성 기반 가격 예측. 식품 카테고리는 단가 변동이 커서 시계열 회귀 비중이 큼.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">시계열 + GBM</span>
+                        <span class="tag">신선식품</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 식품 카테고리(globalgates의 12개 중 하나)에 시계열 가격 변동 반영 가능.
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Section 2: 배송·거래 시간 -->
+        <section class="card section">
+            <div class="section-head">
+                <div class="section-title">
+                    <span class="badge warm">조건부 추천</span>
+                    <h2>배송·거래 시간 예측 (ETA)</h2>
+                </div>
+                <p class="section-desc">물류·배송 도메인에서 가장 활발하다. globalgates에 적용하려면 거래 완료 시점 데이터가 먼저 필요하다.</p>
+            </div>
+
+            <div class="grid">
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-coupang">쿠팡</div>
+                        <div>
+                            <p class="case-name">쿠팡 — 로켓배송 ETA</p>
+                            <p class="case-region">🇰🇷 Korea · e커머스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">상품 페이지에서 "내일 새벽 도착" 같은 ETA 표시. 주소, 시간대, 재고, 배송 권역 통합 회귀.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">실시간 ETA</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 거래 완료 데이터 누적 시 "이 카테고리는 보통 N일 안에 거래돼요" 표시 가능.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-doordash">DD</div>
+                        <div>
+                            <p class="case-name">DoorDash — Delivery ETA</p>
+                            <p class="case-region">🇺🇸 USA · 음식 배달</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">주문 → 도착 시간 예측. 식당 조리시간, 라이더 위치, 교통 등을 통합. 엔지니어링 블로그 공개.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM + DNN</span>
+                        <span class="tag">앙상블</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 회귀 + 분류 결합 (시간 예측 + 지연 위험 분류) 패턴 참고.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-uber">Uber</div>
+                        <div>
+                            <p class="case-name">Uber — 차량 도착 시간</p>
+                            <p class="case-region">🌐 Global · 모빌리티</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">차량 호출 시 도착까지 ETA. LSTM과 GBM을 조합한 모델, 실시간 GPS 데이터 반영.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">LSTM + GBM</span>
+                        <span class="tag">시계열</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 시간 예측에서 시계열 모델의 가치 — 거래 완료 데이터 충분할 때 도입 검토.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-jikbang">직방</div>
+                        <div>
+                            <p class="case-name">직방 — 매물 거래 소요일</p>
+                            <p class="case-region">🇰🇷 Korea · 부동산 플랫폼</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">매물 등록 시 평균 거래 소요일 예측. 지역, 평형, 가격대 기반.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">RandomForest</span>
+                        <span class="tag">거래 시간</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> "이 가격대는 보통 N일" UX의 가장 가까운 한국 사례.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-amazon">A</div>
+                        <div>
+                            <p class="case-name">Amazon — 배송 ETA</p>
+                            <p class="case-region">🌐 Global · e커머스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">상품 카드에 "○일까지 도착" 표시. 창고 재고, 배송 권역, 배송사 capacity까지 종합 예측.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">LightGBM</span>
+                        <span class="tag">대규모 운영</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 운영 데이터 누적 후 거래/배송 ETA 모델로 확장하는 청사진.
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Section 3: 인기도 -->
+        <section class="card section">
+            <div class="section-head">
+                <div class="section-title">
+                    <span class="badge cool">2순위 추천</span>
+                    <h2>게시글 인기도 / Engagement 예측</h2>
+                </div>
+                <p class="section-desc">콘텐츠 플랫폼의 핵심. globalgates의 like/reply/bookmark 컬럼이 이미 있어서 비교적 가까움.</p>
+            </div>
+
+            <div class="grid">
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-youtube">YT</div>
+                        <div>
+                            <p class="case-name">YouTube — 시청 시간 예측</p>
+                            <p class="case-region">🌐 Global · 영상 플랫폼</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">CTR이 아니라 "시청 시간"을 회귀로 예측. 클릭베이트 방지의 핵심 모델.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">Two-Tower DNN</span>
+                        <span class="tag">시청 시간</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 단순 클릭이 아니라 "체류 시간 / 댓글 깊이" 같은 질적 지표 회귀의 정당화.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-tiktok">TT</div>
+                        <div>
+                            <p class="case-name">TikTok — 추천 점수</p>
+                            <p class="case-region">🌐 Global · 숏폼 영상</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">영상별 다중 engagement 지표를 종합한 추천 점수 회귀. 피드 노출 우선순위 결정.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">Multi-task DNN</span>
+                        <span class="tag">멀티 타깃</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> like + reply + bookmark를 한 점수로 통합하는 멀티타깃 회귀 패턴.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-pinterest">P</div>
+                        <div>
+                            <p class="case-name">Pinterest — Engagement 예측</p>
+                            <p class="case-region">🌐 Global · 비주얼 큐레이션</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">핀별 engagement (저장/클릭/공유) 예측. 피드 랭킹의 핵심.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">Wide & Deep</span>
+                        <span class="tag">피드 랭킹</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 게시글 피드 정렬 알고리즘에 회귀 점수 사용하는 청사진.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-instagram">Ig</div>
+                        <div>
+                            <p class="case-name">Instagram — 광고 노출 점수</p>
+                            <p class="case-region">🌐 Global · SNS 광고</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">광고와 사용자 매칭 점수 예측. 광고주 입찰가 + 예상 engagement의 곱으로 노출 결정.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">CTR + 점수</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 광고 모델 도입 시 직접 차용 가능. 현재는 콘텐츠 노출 점수 컨셉만 차용.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-reddit">R</div>
+                        <div>
+                            <p class="case-name">Reddit — Hot Score</p>
+                            <p class="case-region">🌐 Global · 커뮤니티</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">시간 가중치를 적용한 좋아요 점수 회귀. 단순 통계지만 운영 잘 됨.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">시간 가중 회귀</span>
+                        <span class="tag">단순+강력</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 복잡한 모델 전 베이스라인으로 시간 가중 회귀 시도 가치 있음.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-yanolja">Y</div>
+                        <div>
+                            <p class="case-name">야놀자 — 숙소 인기도 점수</p>
+                            <p class="case-region">🇰🇷 Korea · 숙박 OTA</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">숙소별 검색·예약·후기 종합한 인기도 점수로 첫 페이지 노출 결정.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">멀티 신호</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 인기 게시글 정렬에 사용 가능. 한국 OTA 사례라 톤 친화.
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Section 4: CLV / 활동성 -->
+        <section class="card section">
+            <div class="section-head">
+                <div class="section-title">
+                    <span class="badge rose">장기 가치</span>
+                    <h2>회원 활동성 / CLV (Customer Lifetime Value)</h2>
+                </div>
+                <p class="section-desc">사용자 한 명의 미래 가치를 회귀로 예측. 마케팅·리텐션 핵심 지표.</p>
+            </div>
+
+            <div class="grid">
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-netflix">N</div>
+                        <div>
+                            <p class="case-name">Netflix — 시청 시간 / 이탈 예측</p>
+                            <p class="case-region">🌐 Global · 스트리밍</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">사용자별 다음 달 시청 시간 회귀로 이탈 위험 조기 감지. 맞춤 콘텐츠 추천에 활용.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">LSTM + GBM</span>
+                        <span class="tag">시계열</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 활동 정체 회원 조기 발견에 같은 패턴 적용 가능.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-spotify">S</div>
+                        <div>
+                            <p class="case-name">Spotify — 청취 시간 예측</p>
+                            <p class="case-region">🌐 Global · 음악 스트리밍</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">월별 청취 시간 회귀로 구독 갱신 가능성 예측. Discover Weekly의 트랙 점수도 회귀.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">협업필터 + 회귀</span>
+                        <span class="tag">개인화</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 콘텐츠 점수 + 회원 점수 결합 모델 청사진.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-amazon">A</div>
+                        <div>
+                            <p class="case-name">Amazon — Customer Lifetime Value</p>
+                            <p class="case-region">🌐 Global · e커머스</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">고객 한 명의 향후 12개월 누적 구매 금액 회귀 예측. 마케팅 예산 배분의 기준.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">Hierarchical Bayes</span>
+                        <span class="tag">CLV</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 거래 데이터 누적 후 회원별 가치 산정 가능. 광고/입점 우선순위에 사용.
+                    </div>
+                </article>
+
+                <article class="case">
+                    <div class="case-head">
+                        <div class="case-logo lg-stitchfix">SF</div>
+                        <div>
+                            <p class="case-name">Stitch Fix — 고객 가치 회귀</p>
+                            <p class="case-region">🇺🇸 USA · 패션 큐레이션</p>
+                        </div>
+                    </div>
+                    <p class="case-feature">개별 고객의 다음 박스 매출 + 반품률 회귀. 큐레이션 알고리즘의 손익 결정.</p>
+                    <div class="case-tags">
+                        <span class="tag algo">GBM</span>
+                        <span class="tag">손익 결합</span>
+                    </div>
+                    <div class="case-mapping">
+                        <strong>globalgates 적용:</strong> 거래 + 반품/취소 데이터 결합한 회귀 모델 사례.
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 추천 박스 -->
+        <section class="card recommend-box">
+            <h2>🎯 globalgates 첫 회귀 모델 — 권장 흐름</h2>
+            <p class="lead" style="margin-top: 8px;">
+                국내·해외 사례 22개를 종합하면, 가장 데이터가 풍부하고 분류 모델과 자연스럽게 페어링되는 task는 <strong>상품 가격 예측</strong>이다.
+                개발 흐름도 machine-learning 폴더의 <code>c_regression</code> 컨벤션과 자연스럽게 이어진다.
+            </p>
+            <div class="recommend-grid">
+                <div class="rec-card">
+                    <p class="rank">🥇 1순위 — 상품 가격 예측</p>
+                    <h3>분류 모델과 페어로 운영</h3>
+                    <p>
+                        같은 등록 모달에서 카테고리 + 가격을 동시 추천. 학습 데이터는 분류 모델 때 모은 네이버 쇼핑 raw csv의
+                        <code>lprice / hprice</code> 컬럼 그대로 활용. <strong>당근마켓 시세 + Airbnb Smart Pricing + Zillow Zestimate</strong> 사례 매칭.
+                    </p>
+                </div>
+                <div class="rec-card">
+                    <p class="rank">🥈 2순위 — 게시글 인기도 점수</p>
+                    <h3>피드 랭킹 알고리즘 출발점</h3>
+                    <p>
+                        like + reply + bookmark 합산을 회귀 target으로. 시간 가중 회귀 베이스라인부터 GBM까지 단계적 확장.
+                        <strong>YouTube 시청 시간 + Pinterest engagement + Reddit Hot Score</strong> 사례 매칭.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 알고리즘 흐름 -->
+        <section class="card section">
+            <div class="section-head">
+                <div class="section-title">
+                    <h2>알고리즘 흐름 — c_regression 컨벤션 자연스러운 확장</h2>
+                </div>
+                <p class="section-desc">사용자가 이미 학습한 Linear / Multivariate Linear / Decision Tree 다음 단계로 자연스럽게 이어지는 라인.</p>
+            </div>
+
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                <div class="case">
+                    <p class="case-name" style="font-size:16px;">1. Linear Regression</p>
+                    <p class="case-feature">베이스라인. 가장 단순, 해석 가능, 빠름.</p>
+                    <div class="case-tags"><span class="tag">기 학습됨</span></div>
+                </div>
+                <div class="case">
+                    <p class="case-name" style="font-size:16px;">2. Ridge / Lasso</p>
+                    <p class="case-feature">정규화로 과적합 방지 + feature 선택 효과.</p>
+                    <div class="case-tags"><span class="tag">정규화</span></div>
+                </div>
+                <div class="case">
+                    <p class="case-name" style="font-size:16px;">3. RandomForest Regressor</p>
+                    <p class="case-feature">비선형 패턴 잡기 + feature 중요도 시각화.</p>
+                    <div class="case-tags"><span class="tag">앙상블</span></div>
+                </div>
+                <div class="case">
+                    <p class="case-name" style="font-size:16px;">4. XGBoost / LightGBM</p>
+                    <p class="case-feature">운영급 성능. Zillow / Airbnb / Booking 표준.</p>
+                    <div class="case-tags"><span class="tag">운영 표준</span></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="footer-note">
+            정리 기준일 2026-05-07 · 사례 출처는 각 회사의 엔지니어링 블로그 / KDD·RecSys 발표 자료 참조<br>
+            본 mockup은 회귀 task 선정을 위한 사례 비교용이며, 알고리즘 표기는 각사의 대표적 접근을 단순화한 것입니다.
+        </div>
+    </div>
+</body>
+</html>
