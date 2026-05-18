@@ -67,6 +67,8 @@ jobs:
             --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
             --build-arg GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
+            --build-arg FASTAPI_BASE_URL=${{ secrets.FASTAPI_BASE_URL }} \
+            --build-arg INTERNAL_AI_TOKEN=${{ secrets.INTERNAL_AI_TOKEN }} \
           -t app .
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
