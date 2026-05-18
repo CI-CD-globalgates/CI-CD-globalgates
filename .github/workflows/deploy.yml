@@ -53,7 +53,6 @@ jobs:
             --build-arg EC2_HOST=${{ secrets.EC2_HOST }} \
             --build-arg EC2_HOST1=${{ secrets.EC2_HOST1 }} \
             --build-arg EC2_HOST2=${{ secrets.EC2_HOST2 }} \
-            --build-arg EC2_KEY=${{ secrets.EC2_KEY }} \
             --build-arg EC2_USER=${{ secrets.EC2_USER }} \
             --build-arg AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }} \
             --build-arg AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }} \
@@ -71,6 +70,11 @@ jobs:
             --build-arg FASTAPI_BASE_URL=${{ secrets.FASTAPI_BASE_URL }} \
             --build-arg INTERNAL_AI_TOKEN=${{ secrets.INTERNAL_AI_TOKEN }} \
             --build-arg MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
+            --build-arg MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
+            --build-arg MESSAGE_API_KEY=${{ secrets.MESSAGE_API_KEY }} \
+            --build-arg MESSAGE_API_SECRET=${{ secrets.MESSAGE_API_SECRET }} \
+            --build-arg BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
+            --build-arg BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
           -t app .
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
