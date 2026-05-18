@@ -45,37 +45,6 @@ jobs:
           docker rm app || true
           docker rmi app || true
           docker build --build-arg JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            --build-arg PSQL_PORT=${{ secrets.PSQL_PORT }} \
-            --build-arg PSQL_DATABASE=${{ secrets.PSQL_DATABASE }} \
-            --build-arg PSQL_USERNAME=${{ secrets.PSQL_USERNAME }} \
-            --build-arg PSQL_PASSWORD=${{ secrets.PSQL_PASSWORD }} \
-            --build-arg REDIS_PORT=${{ secrets.REDIS_PORT }} \
-            --build-arg EC2_HOST=${{ secrets.EC2_HOST }} \
-            --build-arg EC2_HOST1=${{ secrets.EC2_HOST1 }} \
-            --build-arg EC2_HOST2=${{ secrets.EC2_HOST2 }} \
-            --build-arg EC2_KEY=${{ secrets.EC2_KEY }} \
-            --build-arg EC2_USER=${{ secrets.EC2_USER }} \
-            --build-arg AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }} \
-            --build-arg AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }} \
-            --build-arg AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }} \
-            --build-arg AWS_REGION=${{ secrets.AWS_REGION }} \
-            --build-arg KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
-            --build-arg KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }} \
-            --build-arg NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }} \
-            --build-arg NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --build-arg FACEBOOK_CLIENT_ID=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --build-arg FACEBOOK_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --build-arg GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
-            --build-arg FASTAPI_BASE_URL=${{ secrets.FASTAPI_BASE_URL }} \
-            --build-arg INTERNAL_AI_TOKEN=${{ secrets.INTERNAL_AI_TOKEN }} \
-            --build-arg MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
-            --build-arg MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
-            --build-arg MESSAGE_API_KEY=${{ secrets.MESSAGE_API_KEY }} \
-            --build-arg MESSAGE_API_SECRET=${{ secrets.MESSAGE_API_SECRET }} \
-            --build-arg BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
-            --build-arg BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
           -t app .
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
