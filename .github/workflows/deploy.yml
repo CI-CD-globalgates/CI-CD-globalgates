@@ -62,8 +62,8 @@ jobs:
             --build-arg KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }} \
             --build-arg NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }} \
             --build-arg NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --build-arg FACEBOOK_CLIENT_ID=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --build-arg FACEBOOK_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
+            --build-arg FACEBOOK_CLIENT_ID=${{ secrets.FACEBOOK_CLIENT_ID }} \
+            --build-arg FACEBOOK_CLIENT_SECRET=${{ secrets.FACEBOOK_CLIENT_SECRET }} \
             --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
             --build-arg GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
@@ -101,6 +101,7 @@ jobs:
             -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
             -e GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
             -e FASTAPI_BASE_URL=${{ secrets.FASTAPI_BASE_URL }} \
+            -e INTERNAL_AI_TOKEN=${{ secrets.INTERNAL_AI_TOKEN }} \
             -e MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
             -e MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
             -e MESSAGE_API_KEY=${{ secrets.MESSAGE_API_KEY }} \
