@@ -69,7 +69,7 @@ jobs:
             --build-arg GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }} \
             --build-arg FASTAPI_BASE_URL=${{ secrets.FASTAPI_BASE_URL }} \
             --build-arg INTERNAL_AI_TOKEN=${{ secrets.INTERNAL_AI_TOKEN }} \
-            --build-arg MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
+            --build-arg MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
             --build-arg MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
             --build-arg MESSAGE_API_KEY=${{ secrets.MESSAGE_API_KEY }} \
             --build-arg MESSAGE_API_SECRET=${{ secrets.MESSAGE_API_SECRET }} \
