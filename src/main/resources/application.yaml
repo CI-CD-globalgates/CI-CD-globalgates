@@ -9,13 +9,7 @@ spring:
     url: jdbc:postgresql://${EC2_HOST}:${PSQL_PORT}/${PSQL_DATABASE}?serverTimezone=Asia/Seoul
     username: ${PSQL_USERNAME}
     password: ${PSQL_PASSWORD}
-  sql:
-    init:
-      # 회원가입은 tbl_category 시드 데이터에 의존하므로 앱 기동 시 항상 카테고리를 채워둔다.
-      # category_data.sql 은 ON CONFLICT DO NOTHING 으로 작성돼 있어 재실행해도 중복 에러가 나지 않는다.
-      mode: always
-      data-locations: classpath:sql/category_data.sql
-      continue-on-error: true
+
   session:
     redis:
       repository-type: indexed
