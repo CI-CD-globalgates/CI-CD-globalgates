@@ -27,7 +27,7 @@ spring:
             google:
               client-id: ${GOOGLE_CLIENT_ID}
               client-secret: ${GOOGLE_CLIENT_SECRET}
-              redirect-uri: https://${EC2_HOST}/login/oauth2/code/google
+              redirect-uri: https://${EC2_HOST}:10000/login/oauth2/code/google
               authorization-grant-type: authorization_code
               scope: profile, email
 
