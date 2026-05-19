@@ -41,7 +41,7 @@ spring:
 
   rabbitmq:
     host: ${EC2_HOST1}
-    port: ${RABBITMQ_PORT}
+    port: 5672
     username: guest
     password: guest
 
