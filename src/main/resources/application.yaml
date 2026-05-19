@@ -32,30 +32,30 @@ spring:
       max-file-size: 5MB
       max-request-size: 15MB
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: guest
+    password: guest
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: "${MAIL_PASSWORD}"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: com.app.globalgates.domain; com.app.globalgates.dto;
   type-handlers-package: com.app.globalgates.mybatis.handler
   configuration:
     map-underscore-to-camel-case: true
-
-rabbitmq:
-  host: ${RABBITMQ_HOST}
-  port: ${RABBITMQ_PORT}
-  username: guest
-  password: guest
-
-mail:
-  host: smtp.gmail.com
-  port: 587
-  username: ${MAIL_USERNAME}
-  password: "${MAIL_PASSWORD}"
-  properties:
-    mail:
-      smtp:
-        auth: true
-        starttls:
-          enable: true
 
 # openssl rand -base64 32
 jwt:

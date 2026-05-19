@@ -2,6 +2,7 @@ package com.app.globalgates.controller.admin;
 
 import com.app.globalgates.auth.CustomUserDetails;
 import com.app.globalgates.dto.RagIngestResponseDTO;
+import com.app.globalgates.service.RagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
