@@ -40,8 +40,8 @@ mybatis:
     map-underscore-to-camel-case: true
 
 rabbitmq:
-  host: localhost
-  port: 5672
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
   username: guest
   password: guest
 
