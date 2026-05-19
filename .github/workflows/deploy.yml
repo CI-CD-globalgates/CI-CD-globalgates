@@ -46,7 +46,6 @@ jobs:
           docker rmi app || true
           docker build --build-arg JWT_SECRET=${{ secrets.JWT_SECRET }} \
             --build-arg PSQL_PORT=${{ secrets.PSQL_PORT }} \
-            --build-arg RABBITMQ_PORT=${{ secrets.RABBITMQ_PORT }} \
             --build-arg PSQL_DATABASE=${{ secrets.PSQL_DATABASE }} \
             --build-arg PSQL_USERNAME=${{ secrets.PSQL_USERNAME }} \
             --build-arg PSQL_PASSWORD=${{ secrets.PSQL_PASSWORD }} \
@@ -80,7 +79,6 @@ jobs:
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e PSQL_PORT=${{ secrets.PSQL_PORT }} \
-            -e RABBITMQ_PORT=${{ secrets.RABBITMQ_PORT }} \
             -e PSQL_DATABASE=${{ secrets.PSQL_DATABASE }} \
             -e PSQL_USERNAME=${{ secrets.PSQL_USERNAME }} \
             -e PSQL_PASSWORD=${{ secrets.PSQL_PASSWORD }} \
