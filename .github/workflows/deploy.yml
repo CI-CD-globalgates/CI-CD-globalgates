@@ -117,4 +117,5 @@ jobs:
         ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@$HOST << 'EOF'
           docker image prune -f
           docker container prune -f  
+          echo "end"
         EOF
