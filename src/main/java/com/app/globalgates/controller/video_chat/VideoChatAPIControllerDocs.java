@@ -66,10 +66,14 @@ public interface VideoChatAPIControllerDocs {
 
     @Operation(
             summary = "화상통화 세션 종료",
-            description = "통화가 끝나면 세션 상태를 종료 처리한다.",
+            description = "통화가 끝나면 세션 상태를 종료 처리한다. caller/receiver 본인만 종료 가능 (403 otherwise).",
             parameters = {
+                    @Parameter(name = "userDetails", description = "로그인한 사용자 정보"),
                     @Parameter(name = "conversationId", description = "종료할 채팅방 ID")
             }
     )
-    ResponseEntity<Void> endSession(@RequestParam Long conversationId);
+    ResponseEntity<Void> endSession(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Long conversationId
+    );
 }

@@ -8,6 +8,7 @@ import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +27,8 @@ import java.util.Map;
 @Slf4j
 public class VideoChatTokenProxyController {
 
-    private static final String LIVEKIT_SERVER_URL = "https://localhost:6080/token";
+    @Value("${livekit.server.url}")
+    private String livekitServerUrl;
 
     @PostMapping("token")
     public ResponseEntity<Map<String, String>> proxyToken(
@@ -60,7 +62,7 @@ public class VideoChatTokenProxyController {
             var restTemplate = new RestTemplate(requestFactory);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    LIVEKIT_SERVER_URL,
+                    livekitServerUrl,
                     body,
                     Map.class
             );

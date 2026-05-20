@@ -1,25 +1,21 @@
 package com.app.globalgates.service;
 
-import com.app.globalgates.common.enumeration.NotificationType;
-import com.app.globalgates.config.RabbitmqConfig;
-import com.app.globalgates.dto.NotificationDTO;
 import com.app.globalgates.dto.chat.ChatMessageDTO;
 import com.app.globalgates.dto.chat.ChatRoomDTO;
 import com.app.globalgates.dto.FileDTO;
 import com.app.globalgates.repository.chat.ChatMessageDAO;
 import com.app.globalgates.repository.chat.ChatRoomDAO;
 import com.app.globalgates.service.chat.ChatFileService;
+import com.app.globalgates.service.chat.event.ChatMessageSentEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -28,27 +24,9 @@ import java.util.Optional;
 public class ProducerService {
     private final ChatMessageDAO chatMessageDAO;
     private final ChatRoomDAO chatRoomDAO;
-    private final RabbitTemplate rabbitTemplate;
     private final ChatFileService chatFileService;
-    private final SimpMessagingTemplate messagingTemplate;
     private final BlockService blockService;
-    private final NotificationService notificationService;
-
-    private void sendMessageNotification(ChatMessageDTO saved) {
-        chatRoomDAO.findPartnerByConversation(saved.getConversationId(), saved.getSenderId())
-                .map(ChatRoomDTO::getInvitedId)
-                .ifPresent(partnerId -> {
-                    NotificationDTO noti = new NotificationDTO();
-                    noti.setRecipientId(partnerId);
-                    noti.setSenderId(saved.getSenderId());
-                    noti.setNotificationType(NotificationType.MESSAGE);
-                    noti.setTitle("메시지");
-                    noti.setContent("새 메시지가 도착했습니다.");
-                    noti.setTargetId(saved.getConversationId());
-                    noti.setTargetType("conversation");
-                    notificationService.createNotification(noti);
-                });
-    }
+    private final ApplicationEventPublisher eventPublisher;
 
     private void validateNotBlocked(Long conversationId, Long senderId) {
         Optional<ChatRoomDTO> partner = chatRoomDAO.findPartnerByConversation(conversationId, senderId);
@@ -61,6 +39,9 @@ public class ProducerService {
         }
     }
 
+    // 메시지 INSERT + 복원만 트랜잭션 내에서 수행한다.
+    // Rabbit publish / Notification / WebSocket 복원 통지는 트랜잭션 커밋 후
+    // ChatMessageEventListener 에서 처리된다 (AFTER_COMMIT).
     @Transactional
     public ChatMessageDTO sendMessage(ChatMessageDTO chatMessageDTO) {
         validateNotBlocked(chatMessageDTO.getConversationId(), chatMessageDTO.getSenderId());
@@ -69,23 +50,10 @@ public class ProducerService {
 
         saved.setSenderName(chatMessageDTO.getSenderName());
 
-//        복원 대상 멤버 조회 (is_deleted = true인 멤버)
         List<Long> deletedMemberIds = chatRoomDAO.findDeletedMemberIds(saved.getConversationId());
-
-//        메시지 보내면 대화방의 모든 참여자 is_deleted 복원
         chatRoomDAO.restoreAllMembers(saved.getConversationId());
 
-        rabbitTemplate.convertAndSend(
-                RabbitmqConfig.CHAT_EXCHANGE,
-                RabbitmqConfig.CHAT_ROUTING_KEY,
-                saved
-        );
-        log.info("RabbitMQ 발행 완료 - conversationId: {}", saved.getConversationId());
-
-//        삭제했던 멤버에게 방 복원 알림 (WebSocket 구독이 끊긴 상태이므로 사용자 채널로 전송)
-        notifyRestoredMembers(deletedMemberIds, saved.getConversationId());
-
-        sendMessageNotification(saved);
+        eventPublisher.publishEvent(new ChatMessageSentEvent(saved, deletedMemberIds));
 
         return saved;
     }
@@ -105,33 +73,11 @@ public class ProducerService {
         saved.setFileSize(fileDTO.getFileSize());
         saved.setFileContentType(fileDTO.getContentType().getValue());
 
-//        복원 대상 멤버 조회 (is_deleted = true인 멤버)
         List<Long> deletedMemberIds = chatRoomDAO.findDeletedMemberIds(saved.getConversationId());
-
-//        메시지 보내면 대화방의 모든 참여자 is_deleted 복원
         chatRoomDAO.restoreAllMembers(saved.getConversationId());
 
-        rabbitTemplate.convertAndSend(
-                RabbitmqConfig.CHAT_EXCHANGE,
-                RabbitmqConfig.CHAT_ROUTING_KEY,
-                saved
-        );
-        log.info("RabbitMQ 발행 완료 (파일 포함) - conversationId: {}", saved.getConversationId());
-
-//        삭제했던 멤버에게 방 복원 알림
-        notifyRestoredMembers(deletedMemberIds, saved.getConversationId());
-
-        sendMessageNotification(saved);
+        eventPublisher.publishEvent(new ChatMessageSentEvent(saved, deletedMemberIds));
 
         return saved;
-    }
-
-    private void notifyRestoredMembers(List<Long> memberIds, Long conversationId) {
-        if (memberIds == null || memberIds.isEmpty()) return;
-        Map<String, Long> payload = Map.of("conversationId", conversationId);
-        for (Long memberId : memberIds) {
-            messagingTemplate.convertAndSend("/topic/user." + memberId + ".restore", payload);
-            log.info("방 복원 알림 전송 - memberId: {}, conversationId: {}", memberId, conversationId);
-        }
     }
 }
