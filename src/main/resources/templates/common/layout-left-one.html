@@ -14,7 +14,7 @@
 </head>
 <body>
 <main class="Page-Layout" id="mainPage">
-<header th:replace="/common/header-left-one::sidebar-left"></header>
+<header th:replace="common/header-left-one::sidebar-left"></header>
 <th:block layout:fragment="content"></th:block>
 <th:block layout:fragment="video_ai">
     <div th:replace="~{video_ai/video_ai :: videoAi}"></div>
