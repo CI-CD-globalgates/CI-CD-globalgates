@@ -19,12 +19,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +28,7 @@ import java.util.UUID;
 public class RagService {
     private final FileDAO fileDAO;
     private final RagDocumentDAO ragDocumentDAO;
+    private final S3Service s3Service;
 
     @Value("${ai.fastapi.base-url:http://127.0.0.1:8000}")
     private String fastApiBaseUrl;
@@ -39,18 +36,17 @@ public class RagService {
     @Value("${ai.fastapi.internal-token:}")
     private String internalAiToken;
 
-    @Value("${ai.rag.storage-root-dir:${user.dir}/storage/rag}")
-    private String ragStorageRootDir;
-
     // 관리자 업로드 한 번으로 저장, 메타 적재, FastAPI ingest 호출까지 끝낸다.
     public RagIngestResponseDTO uploadAndIngest(Long uploadedBy, MultipartFile file) throws IOException {
-        Path storedPath = saveFileToStorage(file);
-        String documentName = resolveDocumentName(file.getOriginalFilename(), storedPath);
+        String s3Key = null;
         Long fileId = null;
         Long documentId = null;
 
         try {
-            FileDTO fileDTO = buildFileDTO(file, storedPath, documentName);
+            s3Key = s3Service.uploadFile(file, "rag/" + getTodayPath());
+            String documentName = resolveDocumentName(file.getOriginalFilename(), s3Key);
+
+            FileDTO fileDTO = buildFileDTO(file, s3Key, documentName);
             fileDAO.save(fileDTO);
             fileId = fileDTO.getId();
 
@@ -59,7 +55,7 @@ public class RagService {
             documentId = ragDocumentDTO.getId();
 
             ragDocumentDAO.updateRagStatus(documentId, RagProcessStatus.PROCESSING, null);
-            requestFastApiIngest(storedPath.toString());
+            requestFastApiIngest(s3Key);
             ragDocumentDAO.updateRagStatus(documentId, RagProcessStatus.COMPLETED, null);
 
             RagIngestResponseDTO responseDTO = new RagIngestResponseDTO();
@@ -69,39 +65,27 @@ public class RagService {
             responseDTO.setMessage("RAG 문서 적재 요청이 완료되었습니다.");
             return responseDTO;
         } catch (Exception e) {
-            log.error("RAG 문서 적재 실패 - uploadedBy: {}, fileId: {}, documentId: {}", uploadedBy, fileId, documentId, e);
+            log.error("RAG 문서 적재 실패 - uploadedBy: {}, fileId: {}, documentId: {}, s3Key: {}",
+                    uploadedBy, fileId, documentId, s3Key, e);
 
             if (documentId != null) {
                 // 적재 실패 파일은 남겨둬야 관리자 재시도나 원인 분석이 가능하다.
                 ragDocumentDAO.updateRagStatus(documentId, RagProcessStatus.FAILED, buildErrorMessage(e));
             } else {
-                rollbackLocalFile(storedPath);
                 rollbackFileMetadata(fileId);
+                rollbackS3File(s3Key);
             }
 
             throw new RuntimeException("RAG 문서 적재에 실패했습니다.", e);
         }
     }
 
-    // FastAPI 가 바로 읽을 수 있게 절대 경로 기반 로컬 저장소를 사용한다.
-    private Path saveFileToStorage(MultipartFile file) throws IOException {
-        Path directory = Path.of(ragStorageRootDir, getTodayPath());
-        Files.createDirectories(directory);
-
-        String extension = getExtension(file.getOriginalFilename());
-        String storedFileName = UUID.randomUUID() + extension;
-        Path storedPath = directory.resolve(storedFileName);
-
-        Files.copy(file.getInputStream(), storedPath, StandardCopyOption.REPLACE_EXISTING);
-        return storedPath.toAbsolutePath();
-    }
-
     // tbl_file 는 실제 저장 위치와 원본 이름을 같이 알아야 후속 관리가 편하다.
-    private FileDTO buildFileDTO(MultipartFile file, Path storedPath, String documentName) {
+    private FileDTO buildFileDTO(MultipartFile file, String s3Key, String documentName) {
         FileDTO fileDTO = new FileDTO();
         fileDTO.setOriginalName(documentName);
-        fileDTO.setFileName(storedPath.getFileName().toString());
-        fileDTO.setFilePath(storedPath.toString());
+        fileDTO.setFileName(s3Key.substring(s3Key.lastIndexOf("/") + 1));
+        fileDTO.setFilePath(s3Key);
         fileDTO.setFileSize(file.getSize());
         fileDTO.setContentType(resolveContentType(file.getContentType()));
         return fileDTO;
@@ -118,10 +102,10 @@ public class RagService {
         return ragDocumentDTO;
     }
 
-    // 현재 FastAPI 계약은 filePath 하나만 받으므로 Spring 도 그 모양에 맞춰 보낸다.
-    private void requestFastApiIngest(String filePath) {
+    // Spring 과 FastAPI 는 서로 다른 런타임이므로 로컬 경로가 아니라 S3 key 를 계약으로 사용한다.
+    private void requestFastApiIngest(String s3Key) {
         RagIngestRequestDTO requestDTO = new RagIngestRequestDTO();
-        requestDTO.setFilePath(filePath);
+        requestDTO.setS3Key(s3Key);
 
         WebClient.RequestBodySpec request = WebClient.create(fastApiBaseUrl)
                 .post()
@@ -138,15 +122,6 @@ public class RagService {
                 .block();
     }
 
-    // 파일 메타 저장 전 단계에서 실패한 경우에는 고아 파일을 바로 치운다.
-    private void rollbackLocalFile(Path storedPath) {
-        try {
-            Files.deleteIfExists(storedPath);
-        } catch (IOException ioException) {
-            log.error("RAG 고아 파일 삭제 실패 - path: {}", storedPath, ioException);
-        }
-    }
-
     // tbl_rag_document row 가 생기기 전에 실패한 경우에는 파일 메타도 같이 지운다.
     private void rollbackFileMetadata(Long fileId) {
         if (fileId == null) {
@@ -160,6 +135,18 @@ public class RagService {
         }
     }
 
+    private void rollbackS3File(String s3Key) {
+        if (s3Key == null || s3Key.isBlank()) {
+            return;
+        }
+
+        try {
+            s3Service.deleteFile(s3Key);
+        } catch (Exception e) {
+            log.error("RAG S3 파일 삭제 실패 - s3Key: {}", s3Key, e);
+        }
+    }
+
     // 실패 메시지는 너무 길어지지 않게 한 줄 정도만 잘라서 남긴다.
     private String buildErrorMessage(Exception e) {
         if (e instanceof WebClientResponseException responseException) {
@@ -169,12 +156,12 @@ public class RagService {
         return e.getMessage();
     }
 
-    private String resolveDocumentName(String originalFileName, Path storedPath) {
+    private String resolveDocumentName(String originalFileName, String s3Key) {
         if (originalFileName != null && !originalFileName.isBlank()) {
             return originalFileName;
         }
 
-        return storedPath.getFileName().toString();
+        return s3Key.substring(s3Key.lastIndexOf("/") + 1);
     }
 
     private FileContentType resolveContentType(String mimeType) {
@@ -187,13 +174,5 @@ public class RagService {
 
     private String getTodayPath() {
         return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-    }
-
-    private String getExtension(String originalFileName) {
-        if (originalFileName == null || !originalFileName.contains(".")) {
-            return "";
-        }
-
-        return originalFileName.substring(originalFileName.lastIndexOf("."));
     }
 }

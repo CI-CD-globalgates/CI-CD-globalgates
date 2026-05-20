@@ -12,5 +12,5 @@ import lombok.ToString;
 @EqualsAndHashCode
 @NoArgsConstructor
 public class RagIngestRequestDTO {
-    private String filePath;
+    private String s3Key;
 }
