@@ -84,8 +84,8 @@ bootpay:
 
 ai:
   fastapi:
-    base-url: ${FASTAPI_BASE_URL:}
-    internal-token: ${INTERNAL_AI_TOKEN:}
+    base-url: ${FASTAPI_BASE_URL}
+    internal-token: ${INTERNAL_AI_TOKEN}
   rag:
     storage-root-dir: ${user.dir}/storage/rag
 

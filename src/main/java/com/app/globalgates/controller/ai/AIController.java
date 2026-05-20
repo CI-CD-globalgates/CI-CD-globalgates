@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/ai/**")
 public class AIController {
-    private final WebClient webClient = WebClient.create("http://localhost:8000");
+    private final WebClient webClient = WebClient.create("${FASTAPI_BASE_URL}");
     private final AIService aiService;
 
     @PostMapping("/category/predict")
