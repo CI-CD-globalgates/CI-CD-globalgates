@@ -88,3 +88,7 @@ ai:
     internal-token: ${INTERNAL_AI_TOKEN:}
   rag:
     storage-root-dir: ${user.dir}/storage/rag
+
+livekit:
+  server:
+    url: https://${EC2_HOST}:${LIVEKIT_PORT}/token

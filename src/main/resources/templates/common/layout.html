@@ -12,7 +12,7 @@
     <script src="/js/common/header.js" defer></script>
     <script src="/js/video_ai/event.js" defer></script>
 </head>
-<body>
+<body th:attr="data-livekit-server-url=${livekitServerUrl}">
 <main class="Page-Layout" id="mainPage">
     <header th:replace="common/header::header"></header>
 
