@@ -11,7 +11,7 @@ const recommendationLayout = (() => {
                       <img class="suggestionAvatarImg" src="${profileSrc}" alt="" onerror="this.src='/images/profile/default_image.png'">
                   </div>
                   <div class="suggestionProfile">
-                      <a class="suggestionName" href="/mypage/${friend.id}">${name}</a>
+                      <a class="suggestionName" href="/mypage?memberId=${friend.id}">${name}</a>
                       <span class="sidebar-user-handle">${handle}</span>
                   </div>
                   <button class="connect-btn-sm default" data-member-id="${friend.id}">Connect</button>
