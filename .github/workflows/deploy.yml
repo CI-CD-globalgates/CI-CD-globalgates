@@ -75,6 +75,7 @@ jobs:
             --build-arg MESSAGE_API_SECRET=${{ secrets.MESSAGE_API_SECRET }} \
             --build-arg BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
             --build-arg BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
+            --build-arg LIVEKIT_PORT=${{ secrets.LIVEKIT_PORT }} \
           -t app .
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
@@ -108,6 +109,7 @@ jobs:
             -e MESSAGE_API_SECRET=${{ secrets.MESSAGE_API_SECRET }} \
             -e BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
             -e BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
+            -e LIVEKIT_PORT=${{ secrets.LIVEKIT_PORT }} \
             app
         EOF
 
