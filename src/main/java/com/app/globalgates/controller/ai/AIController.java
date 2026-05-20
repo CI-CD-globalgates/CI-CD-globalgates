@@ -4,6 +4,7 @@ import com.app.globalgates.dto.*;
 import com.app.globalgates.service.AIService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -17,15 +18,25 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/ai/**")
 public class AIController {
-    private final WebClient webClient = WebClient.create("${FASTAPI_BASE_URL}");
+    private final WebClient.Builder webClientBuilder;
     private final AIService aiService;
+
+    @Value("${ai.fastapi.base-url}")
+    private String fastApiBaseUrl;
+
+    private WebClient fastApiClient() {
+        return webClientBuilder
+                .clone()
+                .baseUrl(fastApiBaseUrl)
+                .build();
+    }
 
     @PostMapping("/category/predict")
     @ResponseBody
     public Mono<ProductCategoryRecommendationResponseDTO> getProductCategoryRecommendation(@RequestBody ProductCategoryRecommendationRequestDTO productCategoryRecommendationRequestDTO) {
         log.info("body: {}", productCategoryRecommendationRequestDTO);
 
-        return webClient.post()
+        return fastApiClient().post()
                 .uri("/api/ai/category/predict")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(productCategoryRecommendationRequestDTO)
@@ -38,7 +49,7 @@ public class AIController {
     public Mono<List<FriendsDTO>> getFollowRecommendation(@PathVariable Long memberId) {
         FollowRecommendationRequestDTO requestDTO = aiService.getFollowRecommendationRequest(memberId);
         log.info("body: {}", requestDTO);
-        return webClient.post()
+        return fastApiClient().post()
                 .uri("/api/ai/follow/recommend")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestDTO)
@@ -52,7 +63,7 @@ public class AIController {
     public Mono<ChatbotQueryResponseDTO> queryChatbot(@RequestBody ChatbotQueryRequestDTO requestDTO) {
         log.info("chatbot body: {}", requestDTO);
 
-        return webClient.post()
+        return fastApiClient().post()
                 .uri("/api/chat/query")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestDTO)
