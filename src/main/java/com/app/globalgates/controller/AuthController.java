@@ -4,7 +4,6 @@ import com.app.globalgates.auth.CustomUserDetails;
 import com.app.globalgates.auth.JwtTokenProvider;
 import com.app.globalgates.dto.MemberDTO;
 import com.app.globalgates.service.MemberService;
-import com.app.globalgates.service.S3Service;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,7 +32,6 @@ public class AuthController implements AuthControllerDocs {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final HttpServletResponse response;
-    private final S3Service s3Service;
 
     @PostMapping("oauth/join")
     public ResponseEntity<?> join(
@@ -45,18 +43,9 @@ public class AuthController implements AuthControllerDocs {
         // join.html 뒤쪽 모달에서 입력한 추가정보를 함께 전달받는다.
         log.info("oauth join memberDTO: {}", memberDTO);
 
-        String uploadedKey = "";
-
         try {
-            // 프로필 이미지를 직접 올린 경우 먼저 S3 업로드
-            // DB 저장이 실패하면 아래 catch에서 삭제한다.
-            if (file != null && !file.isEmpty()) {
-                String todayPath = memberService.getTodayPath();
-                uploadedKey = s3Service.uploadFile(file, todayPath);
-            }
-
             // 회원 본체 저장, 사업자 정보 저장, 카테고리 저장, OAuth 연동 저장은 서비스가 담당
-            memberService.joinOAuth(memberDTO, file, uploadedKey);
+            memberService.joinOAuth(memberDTO, file);
 
             // JWT 발급용 로그인 식별값은 기존 프로젝트 흐름과 맞춰 email 우선 사용
             String loginId = "";
@@ -80,11 +69,6 @@ public class AuthController implements AuthControllerDocs {
             ));
 
         } catch (Exception e) {
-            // 업로드 후 저장 실패 시 S3 파일 정리
-            if (!uploadedKey.isBlank()) {
-                s3Service.deleteFile(uploadedKey);
-            }
-
             log.error("oauth join failed", e);
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

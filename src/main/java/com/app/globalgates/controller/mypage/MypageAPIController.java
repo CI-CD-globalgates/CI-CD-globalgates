@@ -25,7 +25,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -302,41 +301,10 @@ public class MypageAPIController implements MypageAPIControllerDocs {
             @RequestParam(value = "images", required = false) List<MultipartFile> images,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) throws IOException {
-
-        // memberId는 프론트가 아닌 로그인 사용자에서만 받는다.
-        postProductDTO.setMemberId(userDetails.getId());
-        log.info("postProductDTO: {}", postProductDTO);
-        if (images != null && !images.isEmpty()) {
-            String todayPath = postProductService.getTodayPath();
-            List<String> uploadedKeys = new ArrayList<>();
-
-            try {
-                postProductService.save(postProductDTO);
-
-                for (MultipartFile image : images) {
-                    if (image == null || image.isEmpty()) {
-                        continue;
-                    }
-
-                    String s3Key = s3Service.uploadFile(image, todayPath);
-                    uploadedKeys.add(s3Key);
-                    postProductService.saveFile(postProductDTO.getId(), image, s3Key);
-                }
-            } catch (Exception e) {
-                uploadedKeys.forEach(s3Service::deleteFile);
-
-                if (postProductDTO.getId() != null) {
-                    postProductService.delete(postProductDTO.getId());
-                }
-
-                throw new RuntimeException("상품 등록 실패", e);
-            }
-        } else {
-            postProductService.save(postProductDTO);
-        }
+        Long productId = postProductService.writeProduct(postProductDTO, images, userDetails.getId());
 
         return ResponseEntity.ok(Map.of(
-                "id", postProductDTO.getId(),
+                "id", productId,
                 "message", "상품 등록 성공"
         ));
     }

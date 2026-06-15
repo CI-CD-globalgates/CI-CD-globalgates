@@ -34,6 +34,7 @@ public class PostProductService {
     private final PostDAO postDAO;
     private final CategoryDAO categoryDAO;
     private final PostService postService;
+    private final S3Service s3Service;
 
     // 상품 등록 본체 저장
     public void save(PostProductDTO postProductDTO) {
@@ -60,7 +61,38 @@ public class PostProductService {
         postService.saveFile(postId, image, s3Key);
     }
 
-    // 실패 시 기존 삭제 흐름처럼 tbl_post 상태를 inactive로 바꾼다.
+    // 상품 등록은 본체 저장, S3 업로드, 파일 메타 저장, 실패 보상 삭제가 하나의 유스케이스다.
+    public Long writeProduct(PostProductDTO postProductDTO, List<MultipartFile> images, Long memberId) {
+        postProductDTO.setMemberId(memberId);
+        log.info("postProductDTO: {}", postProductDTO);
+
+        List<String> uploadedKeys = new ArrayList<>();
+
+        try {
+            save(postProductDTO);
+
+            if (images != null && !images.isEmpty()) {
+                String todayPath = getTodayPath();
+
+                for (MultipartFile image : images) {
+                    if (image == null || image.isEmpty()) {
+                        continue;
+                    }
+
+                    String s3Key = s3Service.uploadFile(image, todayPath);
+                    uploadedKeys.add(s3Key);
+                    saveFile(postProductDTO.getId(), image, s3Key);
+                }
+            }
+
+            return postProductDTO.getId();
+        } catch (Exception e) {
+            uploadedKeys.forEach(this::deleteS3FileQuietly);
+            throw new RuntimeException("상품 등록 실패", e);
+        }
+    }
+
+    // 상품 id 기준으로 tbl_post 상태를 inactive로 바꾼다.
     public void delete(Long id) {
         postDAO.delete(id);
     }
@@ -94,6 +126,18 @@ public class PostProductService {
 
     public String getTodayPath() {
         return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+    }
+
+    private void deleteS3FileQuietly(String s3Key) {
+        if (s3Key == null || s3Key.isBlank()) {
+            return;
+        }
+
+        try {
+            s3Service.deleteFile(s3Key);
+        } catch (Exception e) {
+            log.error("상품 등록 실패 보상 삭제 실패. s3Key={}", s3Key, e);
+        }
     }
 
     private Long resolveCategoryId(String categoryName) {
