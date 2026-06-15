@@ -13,19 +13,18 @@ import com.app.globalgates.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,72 +40,99 @@ public class MemberService {
     private final OAuthDAO oAuthDAO;
     private final NotificationPreferenceDAO notificationPreferenceDAO;
     private final PasswordEncoder passwordEncoder;
+    private final S3Service s3Service;
 
     //  일반 회원가입
     @Transactional
     @LogStatus
     public void join(MemberDTO memberDTO, MultipartFile profile){
-        memberDTO.setMemberPassword(passwordEncoder.encode(memberDTO.getMemberPassword()));
-        memberDAO.save(memberDTO);
-        log.info(memberDTO.toBusinessMemberVO().toString());
+        String uploadedKey = "";
 
-        // 사업자 정보 저장
-        BusinessMemberDTO businessMemberDTO = new BusinessMemberDTO();
-        businessMemberDTO.setId(memberDTO.getId());
-        businessMemberDTO.setBusinessNumber(memberDTO.getBusinessNumber());
-        businessMemberDTO.setCompanyName(memberDTO.getCompanyName());
-        businessMemberDTO.setCeoName(memberDTO.getCeoName());
-        businessMemberDTO.setBusinessType(memberDTO.getBusinessType());
-        businessMemberDAO.save(businessMemberDTO.toBusinessMemberVO());
+        try {
+            if (profile != null && !profile.isEmpty()) {
+                uploadedKey = s3Service.uploadFile(profile, getTodayPath());
+            }
 
-        // 회원가입 정보에서 가져온 카테고리 이름으로 카테고리 조회
-        CategoryDTO categoryDTO = categoryDAO.findByCategoryName(memberDTO.getCategoryName()).orElseThrow(null);
+            memberDTO.setMemberPassword(passwordEncoder.encode(memberDTO.getMemberPassword()));
+            memberDAO.save(memberDTO);
+            log.info(memberDTO.toBusinessMemberVO().toString());
 
-        // 사업자 관심사 저장
-        CategoryMemberDTO categoryMemberDTO = new CategoryMemberDTO();
-        categoryMemberDTO.setMemberId(memberDTO.getId());
-        categoryMemberDTO.setCategoryId(categoryDTO.getId());
-        categoryMemberDAO.save(categoryMemberDTO);
+            // 사업자 정보 저장
+            BusinessMemberDTO businessMemberDTO = new BusinessMemberDTO();
+            businessMemberDTO.setId(memberDTO.getId());
+            businessMemberDTO.setBusinessNumber(memberDTO.getBusinessNumber());
+            businessMemberDTO.setCompanyName(memberDTO.getCompanyName());
+            businessMemberDTO.setCeoName(memberDTO.getCeoName());
+            businessMemberDTO.setBusinessType(memberDTO.getBusinessType());
+            businessMemberDAO.save(businessMemberDTO.toBusinessMemberVO());
+
+            // 회원가입 정보에서 가져온 카테고리 이름으로 카테고리 조회
+            CategoryDTO categoryDTO = categoryDAO.findByCategoryName(memberDTO.getCategoryName())
+                    .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+
+            // 사업자 관심사 저장
+            CategoryMemberDTO categoryMemberDTO = new CategoryMemberDTO();
+            categoryMemberDTO.setMemberId(memberDTO.getId());
+            categoryMemberDTO.setCategoryId(categoryDTO.getId());
+            categoryMemberDAO.save(categoryMemberDTO);
+
+            if (!uploadedKey.isBlank()) {
+                saveFile(memberDTO.getId(), profile, uploadedKey);
+            }
+        } catch (Exception e) {
+            deleteUploadedFile(uploadedKey);
+            throw new RuntimeException("회원가입 실패", e);
+        }
     }
 
     @Transactional
     @LogStatus
-    public void joinOAuth(MemberDTO memberDTO, MultipartFile profile, String s3Key) {
+    public void joinOAuth(MemberDTO memberDTO, MultipartFile profile) {
         // OAuth 신규가입은 일반 회원가입과 달리 비밀번호 암호화를 하지 않는다.
         // 이미 OAuth 인증을 마친 사용자가 추가정보만 입력한 뒤 최종 가입하는 흐름이다.
+        String uploadedKey = "";
 
-        // 1. 회원 본체 저장
-        memberDAO.save(memberDTO);
+        try {
+            if (profile != null && !profile.isEmpty()) {
+                uploadedKey = s3Service.uploadFile(profile, getTodayPath());
+            }
 
-        // 2. 사업자 정보 저장
-        BusinessMemberDTO businessMemberDTO = new BusinessMemberDTO();
-        businessMemberDTO.setId(memberDTO.getId());
-        businessMemberDTO.setBusinessNumber(memberDTO.getBusinessNumber());
-        businessMemberDTO.setCompanyName(memberDTO.getCompanyName());
-        businessMemberDTO.setCeoName(memberDTO.getCeoName());
-        businessMemberDTO.setBusinessType(memberDTO.getBusinessType());
-        businessMemberDAO.save(businessMemberDTO.toBusinessMemberVO());
+            // 1. 회원 본체 저장
+            memberDAO.save(memberDTO);
 
-        // 3. 카테고리 조회 후 회원 관심사 저장
-        CategoryDTO categoryDTO = categoryDAO.findByCategoryName(memberDTO.getCategoryName())
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+            // 2. 사업자 정보 저장
+            BusinessMemberDTO businessMemberDTO = new BusinessMemberDTO();
+            businessMemberDTO.setId(memberDTO.getId());
+            businessMemberDTO.setBusinessNumber(memberDTO.getBusinessNumber());
+            businessMemberDTO.setCompanyName(memberDTO.getCompanyName());
+            businessMemberDTO.setCeoName(memberDTO.getCeoName());
+            businessMemberDTO.setBusinessType(memberDTO.getBusinessType());
+            businessMemberDAO.save(businessMemberDTO.toBusinessMemberVO());
 
-        CategoryMemberDTO categoryMemberDTO = new CategoryMemberDTO();
-        categoryMemberDTO.setMemberId(memberDTO.getId());
-        categoryMemberDTO.setCategoryId(categoryDTO.getId());
-        categoryMemberDAO.save(categoryMemberDTO);
+            // 3. 카테고리 조회 후 회원 관심사 저장
+            CategoryDTO categoryDTO = categoryDAO.findByCategoryName(memberDTO.getCategoryName())
+                    .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
-        // 4. OAuth 연동 정보 저장
-        OAuthDTO oAuthDTO = new OAuthDTO();
-        oAuthDTO.setProvider(memberDTO.getProvider());
-        oAuthDTO.setProviderId(memberDTO.getProviderId());
-        oAuthDTO.setProfileURL(memberDTO.getProfileURL());
-        oAuthDTO.setMemberId(memberDTO.getId());
-        oAuthDAO.save(oAuthDTO.toOAuthVO());
+            CategoryMemberDTO categoryMemberDTO = new CategoryMemberDTO();
+            categoryMemberDTO.setMemberId(memberDTO.getId());
+            categoryMemberDTO.setCategoryId(categoryDTO.getId());
+            categoryMemberDAO.save(categoryMemberDTO);
 
-        // 5. 프로필 이미지를 직접 업로드한 경우 파일 정보 저장
-        if (profile != null && !profile.isEmpty() && s3Key != null && !s3Key.isBlank()) {
-            saveFile(memberDTO.getId(), profile, s3Key);
+            // 4. OAuth 연동 정보 저장
+            OAuthDTO oAuthDTO = new OAuthDTO();
+            oAuthDTO.setProvider(memberDTO.getProvider());
+            oAuthDTO.setProviderId(memberDTO.getProviderId());
+            oAuthDTO.setProfileURL(memberDTO.getProfileURL());
+            oAuthDTO.setMemberId(memberDTO.getId());
+            oAuthDAO.save(oAuthDTO.toOAuthVO());
+
+            // 5. 프로필 이미지를 직접 업로드한 경우 파일 정보 저장
+            if (!uploadedKey.isBlank()) {
+                saveFile(memberDTO.getId(), profile, uploadedKey);
+            }
+        } catch (Exception e) {
+            deleteUploadedFile(uploadedKey);
+            throw new RuntimeException("SNS 회원가입 실패", e);
         }
     }
 
@@ -156,8 +182,68 @@ public class MemberService {
     @LogStatus
     public void update(String loginId, MemberDTO memberDTO) {
         // 이름(닉네임), 자기소개, 생년월일만 갱신한다.
-        // 이미지 교체 흐름은 컨트롤러에서 upload/save/delete 순서로 직접 조합한다.
+        // 이미지 교체 흐름은 updateProfile()에서 함께 처리한다.
         memberDAO.update(memberDTO);
+    }
+
+    //  프로필 수정 전체 흐름
+    @Transactional
+    @CacheEvict(value="member", key="#loginId")
+    @LogStatus
+    public void updateProfile(
+            String loginId,
+            Long memberId,
+            MemberDTO memberDTO,
+            MultipartFile profileImage,
+            MultipartFile bannerImage
+    ) {
+        // 수정 대상 회원 id는 프론트에서 받지 않고 로그인 사용자 기준으로 고정한다.
+        memberDTO.setId(memberId);
+
+        String uploadedProfileKey = "";
+        String uploadedBannerKey = "";
+        List<String> oldFileNames = new ArrayList<>();
+
+        MemberProfileFileDTO oldProfileFile = getProfileFile(memberId);
+        MemberProfileFileDTO oldBannerFile = getBannerFile(memberId);
+
+        try {
+            update(loginId, memberDTO);
+
+            if (profileImage != null && !profileImage.isEmpty()) {
+                uploadedProfileKey = s3Service.uploadFile(profileImage, getTodayPath());
+                saveFile(memberId, profileImage, uploadedProfileKey);
+
+                if (oldProfileFile != null) {
+                    deleteProfileFile(oldProfileFile.getId());
+
+                    if (oldProfileFile.getFileName() != null && !oldProfileFile.getFileName().isEmpty()) {
+                        oldFileNames.add(oldProfileFile.getFileName());
+                    }
+                }
+            }
+
+            if (bannerImage != null && !bannerImage.isEmpty()) {
+                uploadedBannerKey = s3Service.uploadFile(bannerImage, getTodayPath());
+                saveBannerFile(memberId, bannerImage, uploadedBannerKey);
+
+                if (oldBannerFile != null) {
+                    deleteProfileFile(oldBannerFile.getId());
+
+                    if (oldBannerFile.getFileName() != null && !oldBannerFile.getFileName().isEmpty()) {
+                        oldFileNames.add(oldBannerFile.getFileName());
+                    }
+                }
+            }
+
+            deleteFilesAfterCommit(oldFileNames);
+        } catch (Exception e) {
+            // 이번 요청에서 새로 올린 파일만 되돌린다.
+            // 기존 파일은 DB 커밋이 끝난 뒤에만 삭제하도록 예약하므로 실패 시 유지된다.
+            deleteS3FileQuietly(uploadedProfileKey, "profile-update-rollback");
+            deleteS3FileQuietly(uploadedBannerKey, "profile-update-rollback");
+            throw new RuntimeException("프로필 수정 실패", e);
+        }
     }
 
     //  현재 프로필 이미지 조회
@@ -648,9 +734,44 @@ public class MemberService {
     // 프로필 이미지 삭제
     @LogStatus
     public void delete(Long id) {
-        MemberProfileFileDTO file = memberProfileFileDAO.findByMemberId(id);
         memberProfileFileDAO.deleteByMemberId(id);
         memberDAO.softDelete(id);
+    }
+
+    private void deleteUploadedFile(String s3Key) {
+        deleteS3FileQuietly(s3Key, "join-rollback");
+    }
+
+    private void deleteFilesAfterCommit(List<String> s3Keys) {
+        if (s3Keys == null || s3Keys.isEmpty()) {
+            return;
+        }
+
+        List<String> fileNames = new ArrayList<>(s3Keys);
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            fileNames.forEach(fileName -> deleteS3FileQuietly(fileName, "after-commit-fallback"));
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                fileNames.forEach(fileName -> deleteS3FileQuietly(fileName, "after-commit"));
+            }
+        });
+    }
+
+    private void deleteS3FileQuietly(String s3Key, String context) {
+        if (s3Key == null || s3Key.isBlank()) {
+            return;
+        }
+
+        try {
+            s3Service.deleteFile(s3Key);
+        } catch (Exception e) {
+            log.error("S3 파일 삭제 실패. context={}, s3Key={}", context, s3Key, e);
+        }
     }
 
     // 오늘자 경로 생성
