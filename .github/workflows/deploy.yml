@@ -76,6 +76,7 @@ jobs:
             --build-arg BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
             --build-arg BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
             --build-arg LIVEKIT_PORT=${{ secrets.LIVEKIT_PORT }} \
+            --build-arg APP_BASE_URL=${{ secrets.APP_BASE_URL }} \
           -t app .
           docker run -d -p 80:10000 --name app \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
@@ -110,6 +111,7 @@ jobs:
             -e BOOTPAY_APPLICATION_ID=${{ secrets.BOOTPAY_APPLICATION_ID }} \
             -e BOOTPAY_SECRET_KEY=${{ secrets.BOOTPAY_SECRET_KEY }} \
             -e LIVEKIT_PORT=${{ secrets.LIVEKIT_PORT }} \
+            -e APP_BASE_URL=${{ secrets.APP_BASE_URL }} \
             app
         EOF
 
