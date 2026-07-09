@@ -1063,11 +1063,11 @@ const postModalApi = (() => {
             const communityName = communityId ? audienceBtn.textContent.trim() : null;
 
             if (editPostId) {
-                await _services.updatePost(editPostId, formData);
+                await postModalService.updatePost(editPostId, formData);
             } else if (communityId) {
                 await postModalService.writeCommunityPost(communityId, formData);
             } else {
-                await _services.writePost(formData);
+                await postModalService.writePost(formData);
             }
 
             const wasEditing = !!editPostId;
