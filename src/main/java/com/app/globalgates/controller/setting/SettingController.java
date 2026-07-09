@@ -2,8 +2,10 @@ package com.app.globalgates.controller.setting;
 
 import com.app.globalgates.auth.CustomUserDetails;
 import com.app.globalgates.dto.MemberDTO;
+import com.app.globalgates.dto.MemberProfileFileDTO;
 import com.app.globalgates.dto.NotificationPreferenceDTO;
 import com.app.globalgates.service.MemberService;
+import com.app.globalgates.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,6 +14,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.time.Duration;
+
 @Controller
 @RequestMapping("/setting/**")
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class SettingController {
 
     private final MemberService memberService;
+    private final S3Service s3Service;
 
     @GetMapping("setting")
     public String goToSetting(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
@@ -28,6 +33,15 @@ public class SettingController {
         MemberDTO member = memberService.getMember(userDetails.getLoginId());
         NotificationPreferenceDTO notificationPreference =
                 memberService.getNotificationPreference(userDetails.getLoginId());
+
+        // 사이드바 아바타는 file_name(S3 key)을 그대로 쓰면 깨지므로,
+        // MainController와 동일하게 presigned URL로 변환해 내려준다.
+        MemberProfileFileDTO profileFile = memberService.getProfileFile(member.getId());
+        if (profileFile != null && profileFile.getFileName() != null) {
+            member.setFileName(s3Service.getPresignedUrl(profileFile.getFileName(), Duration.ofMinutes(10)));
+        } else {
+            member.setFileName(null);
+        }
 
         // 템플릿과 프런트는 이 model 객체들을 기준으로 최초 상태를 만든다.
         // 서버는 "초기값의 출처"를, 프런트는 "화면 전환과 상호작용"을 맡도록 책임을 분리한다.

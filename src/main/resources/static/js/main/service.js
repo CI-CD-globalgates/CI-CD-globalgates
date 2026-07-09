@@ -19,14 +19,6 @@ const service = (() => {
         return await response.json();
     };
 
-    const writePost = async (formData) => {
-        await fetch('/api/main/posts/write', { method: 'POST', body: formData });
-    };
-
-    const updatePost = async (postId, formData) => {
-        await fetch(`/api/main/posts/update/${postId}`, { method: 'POST', body: formData });
-    };
-
     const addLike = async (memberId, postId) => {
         await fetch('/api/main/likes', {
             method: 'POST',
@@ -211,7 +203,7 @@ const service = (() => {
     };
 
     return {
-        getPostList: getPostList, getExpertList: getExpertList, getPost: getPost, writePost: writePost, updatePost: updatePost, deletePost: deletePost,
+        getPostList: getPostList, getExpertList: getExpertList, getPost: getPost, deletePost: deletePost,
         addLike: addLike, deleteLike: deleteLike,
         addBookmark: addBookmark, deleteBookmark: deleteBookmark,
         follow: follow, unfollow: unfollow, getFollowings: getFollowings,
