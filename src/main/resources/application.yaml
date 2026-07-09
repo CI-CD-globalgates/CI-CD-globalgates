@@ -16,7 +16,7 @@ spring:
       flush-mode: immediate
   data:
     redis:
-      host: ${REDIS_HOST}
+      host: ${EC2_HOST}
       port: ${REDIS_PORT}
 
   cache:
