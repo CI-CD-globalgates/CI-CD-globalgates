@@ -14,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.io.IOException;
 import java.time.Duration;
 
 @Controller
@@ -38,7 +39,11 @@ public class SettingController {
         // MainController와 동일하게 presigned URL로 변환해 내려준다.
         MemberProfileFileDTO profileFile = memberService.getProfileFile(member.getId());
         if (profileFile != null && profileFile.getFileName() != null) {
-            member.setFileName(s3Service.getPresignedUrl(profileFile.getFileName(), Duration.ofMinutes(10)));
+            try {
+                member.setFileName(s3Service.getPresignedUrl(profileFile.getFileName(), Duration.ofMinutes(10)));
+            } catch (IOException e) {
+                member.setFileName(null);
+            }
         } else {
             member.setFileName(null);
         }
