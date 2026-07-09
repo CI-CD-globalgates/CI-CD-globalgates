@@ -40,21 +40,6 @@ const CommunityDetailService = (() => {
         });
     };
 
-    // 공용 작성 모달이 호출하는 게시 — community context 유지 위해 community endpoint 사용.
-    const writePost = async (formData) => {
-        const main = document.querySelector(".communityDetailPage");
-        const communityId = main?.dataset.communityId;
-        if (!communityId) throw new Error("communityId 없음");
-        await fetch(`/api/communities/${communityId}/posts`, {
-            method: "POST",
-            body: formData
-        });
-    };
-
-    // 공용 작성 모달의 편집 모드 — main 패턴 그대로 사용 (수정/조회 endpoint).
-    const updatePost = async (postId, formData) => {
-        await fetch(`/api/main/posts/update/${postId}`, { method: "POST", body: formData });
-    };
     const getPost = async (postId, memberId) => {
         const response = await fetch(`/api/main/posts/${postId}?memberId=${memberId}`);
         return await response.json();
@@ -98,7 +83,7 @@ const CommunityDetailService = (() => {
 
     return {
         createPost, getPosts, searchPosts, getMedia,
-        writeReply, writePost, updatePost, getPost,
+        writeReply, getPost,
         getMyProducts, getPostTemps, savePostTemp, loadPostTemp, deletePostTemps,
         searchMentionMembers
     };

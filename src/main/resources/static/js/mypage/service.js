@@ -82,17 +82,6 @@ const myPageService = (() => {
         return await response.json();
     };
 
-    const updatePost = async (postId, formData) => {
-        const response = await fetch(`/api/main/posts/update/${postId}`, {
-            method: "POST",
-            body: formData
-        });
-
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(text || "Fetch error");
-        }
-    };
 
     // Likes 탭도 Posts 탭과 같은 PostWithPagingDTO 구조를 사용한다.
     // 따라서 프런트 서비스 계층에서는 엔드포인트만 다르고, 소비 방식은 동일하게 유지한다.
@@ -286,7 +275,6 @@ const myPageService = (() => {
         getMyReplies: getMyReplies,
         getProfileReplies: getProfileReplies,
         getPost: getPost,
-        updatePost: updatePost,
         getMyLikedPosts: getMyLikedPosts,
         deleteProduct: deleteProduct,
         deletePost: deletePost,

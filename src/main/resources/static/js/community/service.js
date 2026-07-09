@@ -110,12 +110,6 @@ const CommunityService = (() => {
     const writeReply = async (postId, formData) => {
         await fetch(`/api/main/posts/${postId}/replies`, { method: "POST", body: formData });
     };
-    const writePost = async (formData) => {
-        await fetch("/api/main/posts/write", { method: "POST", body: formData });
-    };
-    const updatePost = async (postId, formData) => {
-        await fetch(`/api/main/posts/update/${postId}`, { method: "POST", body: formData });
-    };
     const getPost = async (postId, memberId) => {
         const response = await fetch(`/api/main/posts/${postId}?memberId=${memberId}`);
         return await response.json();
@@ -160,7 +154,7 @@ const CommunityService = (() => {
         getList, getMyList, getByCategory, search,
         getHomeFeed, getExploreFeed,
         join, leave, getMembers, kickMember, changeRole,
-        writeReply, writePost, updatePost, getPost,
+        writeReply, getPost,
         getMyProducts, getPostTemps, savePostTemp, loadPostTemp, deletePostTemps,
         searchMentionMembers
     };
